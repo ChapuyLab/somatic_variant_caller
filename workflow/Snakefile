@@ -1,0 +1,177 @@
+from pathlib import Path
+
+normal = config["normal_sample"]
+tumour = config["tumour_sample"]
+
+wrkdir = Path(config["workdir"])
+
+
+logdir = Path(config["logdir"])
+
+metadata = config["metadata"]
+
+samples = [normal, tumour]
+common_biallelic = config["common_biallelic"]
+germline = config["germline"]
+genome = config["genome"]
+
+container: "docker://condaforge/mambaforge"
+
+rule all:
+    input:
+        wrkdir / "filtered.vcf",
+        # expand(wrkdir / "alignments" / "{sample}_dedup.recall.sorted.bam", sample=samples)
+
+rule create_links:
+    input:
+        metadata = metadata
+    params:
+        alignment_dir = wrkdir / "alignments"
+    output:
+        expand(wrkdir / "alignments" / "{sample}.bam", sample=samples),
+        expand(wrkdir / "alignments" / "{sample}.bam.bai", sample=samples)
+    resources:
+        mem_mb=1000,
+        runtime=20,
+        nodes=1,
+    threads: 1
+    run:
+        import pandas as pd
+        print('Hi')
+        metadata = pd.read_csv(input.metadata)
+        metadata = metadata[
+            (metadata["SAMPLE_TYPE"].isin(samples))
+            & (metadata["PATIENT_ID"].astype(str) == str(config["pid"]))
+        ]
+        for index, row in metadata.iterrows():
+            fastq_file = Path(row["BAM_FILE"])
+            output_file = (
+                params.alignment_dir
+                / (row["SAMPLE_TYPE"]+'.bam')
+            )
+            # os.makedirs(params.fastq_dir, exist_ok=True)
+            if os.path.exists(output_file):
+                os.remove(output_file)
+            os.symlink(fastq_file, output_file)
+            print(fastq_file)
+            if os.path.exists(str(output_file)+'.bai'):
+                os.remove(str(output_file)+'.bai')
+            os.symlink(str(fastq_file)+'.bai', str(output_file)+'.bai')
+            print(fastq_file)
+
+rule pileupSummaries:
+    input:
+        bam = wrkdir / "alignments" / "{sample}.bam",
+        variant=config["common_biallelic"]
+    output:
+        table = wrkdir / "{sample}.pileup.table"
+    conda:
+        "envs/gatk.yaml"
+    threads: 1
+    log:
+        logdir / "gatk/{sample}_pileup.log",
+    resources:
+        mem_mb=4000,
+        runtime=72 * 60,
+        nodes=1, 
+    shell:
+        "gatk --java-options '-Xmx{resources.mem_mb}m' GetPileupSummaries -I {input.bam} -V {input.variant} -L {input.variant} -O {output.table} &> {log}"
+
+
+
+
+rule CalculateContamination:
+    input:
+        tumour= wrkdir / str(tumour+".pileup.table"),
+        normal= wrkdir / str(normal+".pileup.table"),
+    output:
+        table = wrkdir / "contamination.table",
+        tumour_segments = wrkdir / "tumour.segments",
+    conda:
+        "envs/gatk.yaml"
+    threads: 1
+    log:
+        logdir / "gatk/calculatecontamination.log",
+    resources:
+        mem_mb=4000,
+        runtime=72 * 60,
+        nodes=1, 
+    shell:
+        "gatk --java-options '-Xmx{resources.mem_mb}m' CalculateContamination -I {input.tumour} -matched {input.normal} -O {output.table} --tumor-segmentation {output.tumour_segments} &> {log}"
+
+rule mutect:
+    input:
+        normal = wrkdir / "alignments" / (normal+".bam"),
+        tumour = wrkdir / "alignments" / (tumour+".bam"),
+        genome = genome,
+        germline = germline
+    params:
+        rg_tumour = config["rg_tumour"],
+        rg_normal = config["rg_normal"],
+
+    output:
+        vcf = wrkdir / "unfiltered.vcf",
+        f1r2 = wrkdir / "f1r2.tar.gz"
+    conda:
+        "envs/gatk.yaml"
+    threads: 4
+    log:
+        logdir / "gatk/mutect.log",
+    resources:
+        mem_mb=8000,
+        runtime=72 * 60,
+        nodes=1, 
+    shell:
+        "gatk Mutect2 -R {input.genome} "
+        " -I {input.normal} -I {input.tumour} "
+        "-tumor {params.rg_tumour} "
+        "-normal {params.rg_normal} "
+        "-germline-resource {input.germline} "
+        "--native-pair-hmm-threads {threads} "
+        "--f1r2-tar-gz {output.f1r2} "
+        "-O {output.vcf} &> {log}"
+
+rule learnReadOrientationModel:
+    input:
+        f1r2 = wrkdir / "f1r2.tar.gz"
+    output:
+        table = wrkdir / "read-orientation-model.tar.gz"
+    conda:
+        "envs/gatk.yaml"
+        
+    threads: 4
+    log:
+        logdir / "gatk/readorientation.log",
+    resources:
+        mem_mb=8000,
+        runtime=72 * 60,
+        nodes=1, 
+
+    shell:
+        "gatk LearnReadOrientationModel -I {input.f1r2} -O {output.table} &> {log}"
+
+
+rule filter_vcf:
+    input:
+        vcf = wrkdir / "unfiltered.vcf",
+        contamination_table = wrkdir / "contamination.table",
+        tumour_segments = wrkdir / "tumour.segments",
+        read_orientation_model = wrkdir / "read-orientation-model.tar.gz",
+        genome = genome
+    output:
+        vcf = wrkdir / "filtered.vcf"
+    conda:
+        "envs/gatk.yaml"
+    threads: 4
+    log:
+        logdir / "gatk/filter_vcf.log",
+    resources:
+        mem_mb=8000,
+        runtime=72 * 60,
+        nodes=1,
+    shell:
+        "gatk FilterMutectCalls -V {input.vcf} -O {output.vcf} "
+        "-R {input.genome} "
+        "--contamination-table {input.contamination_table} "
+        "--tumor-segmentation {input.tumour_segments} "
+        "--ob-priors {input.read_orientation_model} &> {log}"
