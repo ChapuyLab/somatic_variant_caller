@@ -6,12 +6,14 @@ rule SplitIntervals:
         target_file="-L " + target_file if target_file else "",
         scatter_count=scatter_count,
     output:
-        interval_files=expand(
-            wrkdir / "intervals" / "{scatter}-scattered.interval_list",
-            scatter=[
-                "00" + str(i) if i > 9 else "000" + str(i)
-                for i in range(scatter_count)
-            ],
+        interval_files=temp(
+            expand(
+                wrkdir / "intervals" / "{scatter}-scattered.interval_list",
+                scatter=[
+                    "00" + str(i) if i > 9 else "000" + str(i)
+                    for i in range(scatter_count)
+                ],
+            )
         ),
         intervals=directory(wrkdir / "intervals"),
     conda:
@@ -30,14 +32,26 @@ rule SplitIntervals:
 
 rule mutect:
     input:
-        normal=wrkdir / "alignments" / (normal + ".bam"),
+        normal=wrkdir / "alignments" / (normal + ".bam") if normal else [],
         tumour=wrkdir / "alignments" / (tumour + ".bam"),
         genome=genome,
         germline=germline,
         interval=wrkdir / "intervals" / "{scatter}-scattered.interval_list",
+        pon=pon if pon else [],
     params:
         rg_tumour=config["rg_tumour"],
-        rg_normal=config["rg_normal"],
+        rg_normal="-normal " + config["rg_normal"] if normal else "",
+        pon="-pon " + pon if pon else "",
+        inputs=" ".join(
+            [
+                "-I " + str(i)
+                for i in [
+                    wrkdir / "alignments" / (normal + ".bam") if normal else "",
+                    wrkdir / "alignments" / (tumour + ".bam"),
+                ]
+                if i != ""
+            ]
+        ),
     output:
         vcf=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf"),
         stats=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf.stats"),
@@ -54,12 +68,14 @@ rule mutect:
         nodes=1,
     shell:
         "gatk --java-options '-Xmx{resources.mem_mb}m' Mutect2 -R {input.genome} "
-        " -I {input.normal} -I {input.tumour} "
+        "{params.inputs} "
         "-tumor {params.rg_tumour} "
-        "-normal {params.rg_normal} "
+        "{params.rg_normal} "
         "-germline-resource {input.germline} "
         "--native-pair-hmm-threads {threads} "
+        "--genotype-germline-sites true "
         "--f1r2-tar-gz {output.f1r2} "
+        "{params.pon} "
         "-L {input.interval} "
         "-O {output.vcf} &> {log}"
 
