@@ -11,5 +11,10 @@ container: "docker://condaforge/mambaforge"
 
 rule all:
     input:
-        wrkdir / "filtered.vcf",
-        wrkdir / "filtered.avinput.hg19_multianno.csv" if run_annovar else [],
+        wrkdir / str(output_prefix + "_filtered.vcf"),
+        wrkdir / str(output_prefix + "_filtered.vcf.idx"),
+        wrkdir / str(output_prefix + "_filtered.vcf.filteringStats.tsv"),
+        wrkdir / str(output_prefix + ".crosscheck_metrics") if normal else [],
+        wrkdir / str(output_prefix + "_filtered.avinput.hg19_multianno.csv")
+        if run_annovar
+        else [],

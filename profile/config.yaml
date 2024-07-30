@@ -7,7 +7,7 @@ reason: True
 keep-going: True
 printshellcmds: True
 rerun-incomplete: True
-# restart-times: 2
+restart-times: 2
 
 # delete-temp-output: True
 conda-prefix: /dh-projects/T-NHL-chapuy/analysis/panel-seq_analysis/processing_scripts/mutect2/conda_env_singularity
