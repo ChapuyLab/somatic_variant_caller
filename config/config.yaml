@@ -2,6 +2,7 @@ genome: /applications/otp/reference-genomes/bwa06_1KGRef_PhiX/hs37d5_PhiX.fa
 common_biallelic: /dh-projects/T-NHL-chapuy/raw_data/reference/small_exac_common_3.vcf
 germline: /dh-projects/T-NHL-chapuy/raw_data/reference/af-only-gnomad.raw.sites.vcf
 target_file: "/dh-projects/T-NHL-chapuy/raw_data/Solid_Tumors_EDS264/eds264_genes__CDS_only_V2/eds264_genes__CDS_only_V2_Covered.bed"
+pon: /dh-projects/T-NHL-chapuy/raw_data/reference/pon.vcf
 
 metadata: /dh-projects/T-NHL-chapuy/analysis/panel-seq_analysis/results/alignments/metadata.csv
 workdir: /dh-projects/T-NHL-chapuy/scratch/view_by_pid/T-NHL_1005816/somatic_mutations/malign_control
@@ -15,3 +16,7 @@ rg_normal: "T-NHL_1005816_control"
 run_annovar: true
 path_to_annovar: /dh-projects/ag-ishaque/analysis/sahays/annovar/annovar
 annovar_db: /dh-projects/ag-ishaque/analysis/sahays/annovar/annovar/humandb
+
+LOD: -5
+EXPECT_ALL_GROUPS_TO_MATCH: "true"
+haplotypemap: /dh-projects/T-NHL-chapuy/raw_data/reference/hg19_nochr.map
