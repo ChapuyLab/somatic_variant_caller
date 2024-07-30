@@ -4,8 +4,8 @@ rule create_links:
     params:
         alignment_dir=wrkdir / "alignments",
     output:
-        expand(wrkdir / "alignments" / "{sample}.bam", sample=samples),
-        expand(wrkdir / "alignments" / "{sample}.bam.bai", sample=samples),
+        temp(expand(wrkdir / "alignments" / "{sample}.bam", sample=samples)),
+        temp(expand(wrkdir / "alignments" / "{sample}.bam.bai", sample=samples)),
     resources:
         mem_mb=1000,
         runtime=20,

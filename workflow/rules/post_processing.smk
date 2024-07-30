@@ -48,7 +48,9 @@ rule filter_vcf:
         read_orientation_model=wrkdir / "read-orientation-model.tar.gz",
         genome=genome,
     output:
-        vcf=wrkdir / "filtered.vcf",
+        vcf=wrkdir / str(output_prefix + "_filtered.vcf"),
+        idx=wrkdir / str(output_prefix + "_filtered.vcf.idx"),
+        stats=wrkdir / str(output_prefix + "_filtered.vcf.filteringStats.tsv"),
     conda:
         "../envs/gatk.yaml"
     threads: 4
