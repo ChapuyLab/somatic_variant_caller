@@ -2,9 +2,13 @@ if run_annovar:
 
     rule convert2annovar:
         input:
-            vcf=wrkdir / "filtered.vcf",
+            vcf=wrkdir / str(output_prefix + "_filtered.vcf"),
         output:
-            anno_norm=wrkdir / "AV_input" / ("AV." + rg_normal + ".avinput"),
+            anno_norm=(
+                wrkdir / "AV_input" / ("AV." + rg_normal + ".avinput")
+                if normal
+                else {}
+            ),
             anno_tum=wrkdir / "AV_input" / ("AV." + rg_tumour + ".avinput"),
             annovar=directory(wrkdir / "AV_input"),
         params:
@@ -29,9 +33,10 @@ if run_annovar:
         input:
             annovar=wrkdir / "AV_input" / ("AV." + rg_tumour + ".avinput"),
         output:
-            annotated=wrkdir / "filtered.avinput.hg19_multianno.csv",
+            annotated=wrkdir
+            / str(output_prefix + "_filtered.avinput.hg19_multianno.csv"),
         params:
-            anotated=wrkdir / "filtered.avinput",  # this is need as annovar will add the suffix to the output file
+            annotated=wrkdir / str(output_prefix + "_filtered.avinput"),  # this is need as annovar will add the suffix to the output file
             genome_ver="hg19",
             protocol="refGene,cytoBand,avsnp150,dbnsfp42c",
             operation="g,r,f,f",
@@ -51,6 +56,6 @@ if run_annovar:
                 + " {input.annovar} "
                 + str(annovar_db)
                 + " "
-                + "-buildver {params.genome_ver} -outfile {parmas.annotated} -remove -protocol {params.protocol}"
+                + "-buildver {params.genome_ver} -outfile {params.annotated} -remove -protocol {params.protocol}"
                 + " -operation {params.operation} -nastring . -csvout -polish &> {log}"
             )
