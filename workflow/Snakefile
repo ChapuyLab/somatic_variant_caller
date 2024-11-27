@@ -1,20 +1,79 @@
+container: "docker://condaforge/mambaforge"
+
+
 include: "rules/common.smk"
 include: "rules/create_links.smk"
 include: "rules/contamination.smk"
 include: "rules/mutation_calling.smk"
 include: "rules/post_processing.smk"
 include: "rules/annovar.smk"
-
-
-container: "docker://condaforge/mambaforge"
+include: "rules/makeMaf.smk"
+include: "rules/blatFilter.smk"
 
 
 rule all:
     input:
-        wrkdir / str(output_prefix + "_filtered.vcf"),
+        expand(
+            wrkdir / str(output_prefix + "{ifrescue}.vcf"),
+            ifrescue=(
+                [
+                    "_filtered",
+                    "_filtered.blat",
+                    "_filtered.rescue",
+                    "_filtered.rescue.blat",
+                ]
+                if normal
+                else ["_filtered", "_filtered.blat"]
+            ),
+        ),
         wrkdir / str(output_prefix + "_filtered.vcf.idx"),
         wrkdir / str(output_prefix + "_filtered.vcf.filteringStats.tsv"),
         wrkdir / str(output_prefix + ".crosscheck_metrics") if normal else [],
-        wrkdir / str(output_prefix + "_filtered.avinput.hg19_multianno.csv")
+        expand(
+            wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.txt"),
+            ifrescue=(
+                [
+                    "_filtered",
+                    "_filtered.blat",
+                    "_filtered.rescue",
+                    "_filtered.rescue.blat",
+                ]
+                if normal
+                else ["_filtered", "_filtered.blat"]
+            ),
+        )
         if run_annovar
         else [],
+        expand(
+            wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.maf"),
+            ifrescue=(
+                [
+                    "_filtered",
+                    "_filtered.blat",
+                    "_filtered.rescue",
+                    "_filtered.rescue.blat",
+                ]
+                if normal
+                else ["_filtered", "_filtered.blat"]
+            ),
+        )
+        if run_annovar
+        else [
+            expand(
+                wrkdir / str(output_prefix + "{ifrescue}.maf"),
+                ifrescue=(
+                    [
+                        "_filtered",
+                        "_filtered.blat",
+                        "_filtered.rescue",
+                        "_filtered.rescue.blat",
+                    ]
+                    if normal
+                    else ["_filtered", "_filtered.blat"]
+                ),
+            )
+        ],
+        expand(
+            wrkdir / "blat" / str(output_prefix + "_{group}.maf"),
+            group=["passed", "rejected", "all"],
+        ),

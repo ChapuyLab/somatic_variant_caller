@@ -29,7 +29,7 @@ rule learnReadOrientationModel:
     log:
         logdir / "gatk/readorientation.log",
     resources:
-        mem_mb=8000,
+        mem_mb=20000,
         runtime=72 * 60,
         nodes=1,
     shell:
@@ -66,3 +66,77 @@ rule filter_vcf:
         "--contamination-table {input.contamination_table} "
         "--tumor-segmentation {input.tumour_segments} "
         "--ob-priors {input.read_orientation_model} &> {log}"
+
+
+# rule vcf2maf:
+#     input:
+#         vcf=wrkdir / str(output_prefix + "_filtered.vcf")
+
+
+rule convert2callstats:
+    input:
+        vcf=wrkdir / str(output_prefix + "_filtered.vcf"),
+    output:
+        callstats=temp(wrkdir / str(output_prefix + "_callstats.txt")),
+    conda:
+        "../envs/detin.yaml"
+    threads: 1
+    log:
+        logdir / "detin/callstats_convertor.log",
+    resources:
+        mem_mb=8000,
+        runtime=72 * 60,
+        nodes=1,
+    script:
+        "../scripts/vcf2callstats.py"
+
+
+rule detin:
+    input:
+        mutation_data_path=wrkdir / str(output_prefix + "_callstats.txt"),
+        indel_data_path=wrkdir / str(output_prefix + "_filtered.vcf"),
+        exac_data_path=pickle_high_af,
+    params:
+        output_name=output_prefix,
+        indel_data_type="mutect2",
+    output:
+        snvs=wrkdir / "detin" / str(output_prefix + ".deTiN_SSNVs.txt"),
+        indels=wrkdir / "detin" / str(output_prefix + ".deTiN_indels.txt"),
+        output_dir=directory(wrkdir / "detin"),
+    conda:
+        "../envs/detin.yaml"
+    threads: 1
+    log:
+        logdir / "detin/detin.log",
+    resources:
+        mem_mb=8000,
+        runtime=72 * 60,
+        nodes=1,
+    script:
+        "../scripts/detin_scripts/deTiN.py"
+        # "--mutation_data_path {input.callstats} "
+        # "--exac_data_path {input.pickle_high_af} "
+        # "--indel_data_path {input.vcf} "
+        # "--output_name {params.output_name} "
+        # "--output_dir {params.output_path} "
+        # "--indel_data_type mutect2"
+
+
+rule rescueMutations:
+    input:
+        snvs=wrkdir / "detin" / str(output_prefix + ".deTiN_SSNVs.txt"),
+        indels=wrkdir / "detin" / str(output_prefix + ".deTiN_indels.txt"),
+        vcf=wrkdir / str(output_prefix + "_filtered.vcf"),
+    output:
+        vcf=wrkdir / str(output_prefix + "_filtered.rescue.vcf"),
+    threads: 1
+    conda:
+        "../envs/detin.yaml"
+    log:
+        logdir / "detin/rescue.log",
+    resources:
+        mem_mb=8000,
+        runtime=72 * 60,
+        nodes=1,
+    script:
+        "../scripts/detin_scripts/flip2pass.py"

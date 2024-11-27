@@ -1,0 +1,32 @@
+genome: <path2referece fasta>
+common_biallelic: <path to small_exac_common_3.vcf>
+germline: <path to germline mutations example af-only-gnomad.raw.sites.vcf>
+haplotypemap: /dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/reference/hg19_nochr.map
+pon: <path to panel of normals>
+pkl_detin: <path to pickle file as described in the DeTiN github page>
+
+
+target_file: <if WES or panel data the target file in bed format>
+
+metadata: < deprecated>
+workdir: <base working directory absolute path>
+logdir: <base logging directory absolute path>
+
+pid: <patient id>
+normal_sample: <normal sample id optional>
+rg_normal: <read group for normal sample optional>
+normal_bam_file: <absolute path to the normal bam file>
+
+tumour_sample: <tumour sample id>
+rg_tumour: <read group for tumor optional>
+tumour_bam_file: <absolute path to the tumour bam file>
+
+
+genome_build: <genome build>
+
+run_annovar: <bool>
+path_to_annovar: <path to directory containing annovar binaries>
+annovar_db: <path to directory containing annovar databases>
+
+LOD: <LOD>
+EXPECT_ALL_GROUPS_TO_MATCH: <bool>

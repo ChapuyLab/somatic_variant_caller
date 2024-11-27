@@ -3,8 +3,17 @@ rule SplitIntervals:
         genome=genome,
         target_file=target_file if target_file else [],
     params:
-        target_file="-L " + target_file if target_file else "",
+        target_file=(
+            "-L " + target_file
+            if target_file
+            else "-L /dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/reference/wgs_interval_file.bed"
+        ),
         scatter_count=scatter_count,
+        subdivision_mode=(
+            "BALANCING_WITHOUT_INTERVAL_SUBDIVISION"
+            if target_file
+            else "INTERVAL_COUNT"
+        ),
     output:
         interval_files=temp(
             expand(
@@ -27,7 +36,7 @@ rule SplitIntervals:
         nodes=1,
     shell:
         "gatk --java-options '-Xmx{resources.mem_mb}m' SplitIntervals -R {input.genome} "
-        "{params.target_file} --subdivision-mode BALANCING_WITHOUT_INTERVAL_SUBDIVISION --scatter-count {params.scatter_count} -O {output.intervals} &> {log}"
+        "{params.target_file} --subdivision-mode {params.subdivision_mode} --scatter-count {params.scatter_count} -O {output.intervals} &> {log}"
 
 
 rule mutect:
@@ -57,6 +66,7 @@ rule mutect:
         stats=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf.stats"),
         f1r2=temp(wrkdir / "tmp" / "f1r2_{scatter}.tar.gz"),
         idx=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf.idx"),
+        # tmpdir=temp(directory(wrkdir / "tmp")),
     conda:
         "../envs/gatk.yaml"
     threads: 1
@@ -69,7 +79,6 @@ rule mutect:
     shell:
         "gatk --java-options '-Xmx{resources.mem_mb}m' Mutect2 -R {input.genome} "
         "{params.inputs} "
-        "-tumor {params.rg_tumour} "
         "{params.rg_normal} "
         "-germline-resource {input.germline} "
         "--native-pair-hmm-threads {threads} "

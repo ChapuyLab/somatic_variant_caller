@@ -4,8 +4,8 @@ rule create_links:
     params:
         alignment_dir=wrkdir / "alignments",
     output:
-        temp(expand(wrkdir / "alignments" / "{sample}.bam", sample=samples)),
-        temp(expand(wrkdir / "alignments" / "{sample}.bam.bai", sample=samples)),
+        expand(wrkdir / "alignments" / "{sample}.bam", sample=samples),  # these need to be temp but making them temp creates a problem at the checkpoint hence letting them be as they are just links NEED TO FIX
+        expand(wrkdir / "alignments" / "{sample}.bam.bai", sample=samples),
     resources:
         mem_mb=1000,
         runtime=20,

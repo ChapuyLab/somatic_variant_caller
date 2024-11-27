@@ -37,9 +37,20 @@ else:
         os.makedirs(scratch_dir)
 
 if "metadata" not in config:
-    raise ValueError("Please define a metadata file")
+    raise ValueError("Please define a metadata file, or bam file paths")
 else:
     metadata = config["metadata"]
+
+if "normal_bam_file" in config:
+    normal_bam_file = config["normal_bam_file"]
+else:
+    normal_bam_file = False
+
+if "tumour_bam_file" in config:
+    tumour_bam_file = config["tumour_bam_file"]
+else:
+    tumour_bam_file = False
+
 
 if "pid" in config:
     pid = config["pid"]
@@ -72,7 +83,9 @@ else:
 target_file = config["target_file"] if "target_file" in config else False
 
 
-scatter_count = 10  # beware please make the scatter appropriate to the number of intervals you have in bed file#
+scatter_count = (
+    int(config["scatter_count"]) if "scatter_count" in config else 22
+)  # beware please make the scatter appropriate to the number of intervals you have in bed file#
 
 
 run_annovar = config["run_annovar"] if "run_annovar" in config else False
@@ -110,3 +123,21 @@ if "haplotypemap" not in config:
     raise ValueError("Please define a haplotypemap file")
 else:
     haplotypemap = config["haplotypemap"]
+
+if "pkl_detin" not in config:
+    raise ValueError("Please provide pickle file")
+else:
+    pickle_high_af = config["pkl_detin"]
+
+if "genome_build" not in config:
+    raise ValueError("Please provide genome build")
+else:
+    genome_build = config["genome_build"]
+
+if "insertSize" in config:
+    insertSize = config["insertSize"]
+else:
+    insertSize = None
+# blat_binary = "/dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/executables/blat"
+# faToTwoBit_binary = "/dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/executables/faToTwoBit"
+stepper = "all"

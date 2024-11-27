@@ -62,4 +62,4 @@ rule CrossCheckFingerprint:
         nodes=1,
     shell:
         "gatk --java-options '-Xmx{resources.mem_mb}m' CrosscheckFingerprints -I {input.tumour} -I {input.normal} -O {output.crosscheckmetricsfile} "
-        "-H {input.haplotypemap} --LOD {params.LOD} --EXPECT_ALL_GROUPS_TO_MATCH {params.expect_all_groups_to_match} --CROSSCHECK_BY SAMPLE &> {log}"
+        "-H {input.haplotypemap} --LOD {params.LOD} --EXPECT_ALL_GROUPS_TO_MATCH {params.expect_all_groups_to_match} --EXIT_CODE_WHEN_MISMATCH 0 --EXIT_CODE_WHEN_NO_VALID_CHECKS 0 --CROSSCHECK_BY SAMPLE &> {log}"
