@@ -1,8 +1,10 @@
-
-
 rule getInsertSize:
     input:
-        bam=wrkdir / "alignments" / (tumour + ".bam"),
+        bam=(
+            tumour_bam_file
+            if tumour_bam_file
+            else wrkdir / "alignments" / (tumour + ".bam")
+        ),
     output:
         insert_size=wrkdir / "alignments" / (tumour + "_insert-size.txt"),
         insert_size_pdf=wrkdir / "alignments" / (tumour + "_insert-size.pdf"),
@@ -18,7 +20,7 @@ rule getInsertSize:
     message:
         "Collecting insert size metrics"
     shell:
-        "gatk CollectInsertSizeMetrics -I {input.bam} -O {output.insert_size} -H {output.insert_size_pdf} &> {log}"
+        "gatk CollectInsertSizeMetrics -I {input.bam} -O {output.insert_size} -H {output.insert_size_pdf}"  #" &> {log}"
 
 
 rule gen_occ:
@@ -47,7 +49,6 @@ rule gen_occ:
         "-makeOoc={params.file_name} "
         "-t=dna -q=dna "
         "{output.blat_temp_out} "
-        "&> {log}"
 
 
 rule gen_2bit:
@@ -68,7 +69,6 @@ rule gen_2bit:
         "faToTwoBit "
         "{input.genome} "
         "{output} "
-        "&> {log}"
 
 
 checkpoint scatter_maf:
@@ -95,22 +95,25 @@ checkpoint scatter_maf:
         runtime=60,
         nodes=1,
     run:
-        set_input = set()
-        line_count = 0
         import numpy as np
         import pandas as pd
         from pathlib import Path
         import os
 
+        set_input = set()
+        line_count = 0
+        skipline = 0
+        otherinfoIndex = ""
         with open(input.maf) as handle:
             for line in handle:
-
                 if "#" in line or "Hugo_Symbol" in line:
+                    if "Hugo_Symbol" in line:
+                        otherinfoIndex = line.strip().split("\t").index("Otherinfo2")
+                    skipline += 1
                     continue
                 else:
-
                     line = line.strip().split("\t")
-                    set_input.add(line[4] + ":" + line[108])
+                    set_input.add(line[4] + ":" + line[otherinfoIndex])
                     line_count += 1
                     # Calculate # of Chunks
         if line_count > params.max_mut:
@@ -142,7 +145,7 @@ checkpoint scatter_maf:
             )
             if start == 0:
                 header = df_maf.columns
-                start += len(size) + 2
+                start += len(size) + 1
             else:
                 start += len(size)
             set_output = set_output.union(
@@ -163,18 +166,29 @@ checkpoint scatter_maf:
             )
             scatter_index += 1
         if len(set_input - set_output) > 0:
+            print(line_count)
+            print(params.max_mut)
+            print(scatter_count)
             print(set_input - set_output)
             raise ValueError("Error")
 
 
-rule filter_maf:
+rule BlatFilter:
     input:
         maf=lambda wildcards: wrkdir
         / ("scatter_tmp_" + wildcards.sample)
         / (wildcards.sample + "_" + wildcards.scatter + ".maf"),
         # f"scatter_tmp_{wildcards.sample}" / f"{wildcards.sample}_{wildcards.scatter}.maf",
-        bam=wrkdir / "alignments" / (tumour + ".bam"),
-        bai=wrkdir / "alignments" / (tumour + ".bam.bai"),
+        bam=(
+            tumour_bam_file
+            if tumour_bam_file
+            else wrkdir / "alignments" / (tumour + ".bam")
+        ),
+        bai=(
+            tumour_bam_file
+            if tumour_bam_file
+            else wrkdir / "alignments" / (tumour + ".bam.bai")
+        ),
         insert_size=(
             wrkdir / "alignments" / (tumour + "_insert-size.txt")
             if insertSize is None
@@ -216,41 +230,24 @@ def getMafs(wildcards):
     scatter = glob_wildcards(
         scatter_dir / (wildcards.sample + "_{scatter}.maf")
     ).scatter
-    # print(wildcards)
     files = list()
-    filter_dir = Path(rules.filter_maf.params.output_dir)
+    filter_dir = Path(rules.BlatFilter.params.output_dir)
     for i in scatter:
         files.append(
             filter_dir
             / str(wildcards.sample + "_" + str(i) + ".blat." + wildcards.group + ".maf")
         )
-    # print(files)
     return files
-
-
-# def getMafs(wildcards):
-#     scatter_dir = Path(checkpoints.scatter_maf.get(sample=wildcards.sample).output[0])
-#     scatter_files = glob_wildcards(f"{scatter_dir}/{wildcards.sample}_{{scatter}}.maf").scatter
-#     filter_dir = Path(rules.filter_maf.params.output_dir)
-#     return [
-#         filter_dir / f"{wildcards.sample}_{scatter}.passed.maf" for scatter in scatter_files
-#     ]
 
 
 rule gather_maf:
     input:
-        # mafs=expand(
-        #     wrkdir / "tmp_filter" / "{{sample}}_{scatter}.blat.{{group}}.maf",
-        #     scatter=
-        # ),
         mafs=getMafs,
     params:
         chunksize=10000,
     output:
         maf=wrkdir / "blat" / "{sample}_{group}.maf",
     threads: 1
-    container:
-        None
     log:
         logdir / "blat" / "{sample}_{group}_gather_maf.log",
     resources:
@@ -315,9 +312,19 @@ rule FilterVaf:
                     if line[-1] == "REJECT":
                         set_reject.add(line[4] + ":" + line[108])
         with open(input.vcf) as handle, open(output.vcf, "w") as handle_out:
+            flag = True
             for line in handle:
                 line = line.strip().split("\t")
                 if "#" == line[0][0]:
+                    if "##FILTER" in line and flag:
+                        handle_out.write(
+                            '##FILTER=<ID=blatReject,Description="Mutation does not meet criteria of a blat Filter">'
+                        )
+                        flag = False
+                    if "##filtering_status" in line:
+                        handle_out.write(
+                            "##filtering_status=These calls have been further filtered using a blat filter"
+                        )
                     pass
                 elif line[0] + ":" + line[1] in set_reject:
                     line[6] = "blatReject"
