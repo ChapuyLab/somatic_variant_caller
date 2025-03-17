@@ -113,6 +113,9 @@ def parse_record(line, col_idx, col_idx_non):
     #Take the fisrt functional entry
     exonicFunc_refgene = linespl[col_idx.get("ExonicFunc.refGene")]
     exonicFunc_refgene = exonicFunc_refgene.split(";")[0]
+    if exonicFunc_refgene == '.':
+        exonicFunc_refgene = func_refgene
+        # print(exonicFunc_refgene)
 
     # Refgene in Unknonw if IGR or missing
     refgene = linespl[col_idx.get("Gene.refGene")]
@@ -162,12 +165,9 @@ def read_annovar_file(file_path, meta, protocol):
     with open(file_path, 'r') as annovar_file:
         first_line = next(annovar_file).strip()
 
-        if protocol == "refGene":
-            essential_cols = ['Chr', 'Start', 'End', 'Ref', 'Alt', 'Func.refGene', 'Gene.refGene', 'GeneDetail.refGene',
-                              'ExonicFunc.refGene', 'AAChange.refGene']
-        else:
-            essential_cols = ['Chr', 'Start', 'End', 'Ref', 'Alt', 'Func.ensGene', 'Gene.ensGene', 'GeneDetail.ensGene',
-                              'ExonicFunc.ensGene', 'AAChange.ensGene']
+        essential_cols = ['Chr', 'Start', 'End', 'Ref', 'Alt', 'Func.'+protocol, 'Gene.'+protocol, 'GeneDetail.'+protocol,
+                            'ExonicFunc.'+protocol, 'AAChange.'+protocol]
+
 
         nonessential_cols = Diff(first_line.split("\t"), essential_cols)
 
@@ -176,10 +176,17 @@ def read_annovar_file(file_path, meta, protocol):
         nonessential_cols_dict = {col: idx for idx, col in enumerate(first_line.split("\t")) if col in nonessential_cols}
 
         # In case ensGene is used as a protocol, rename the keys to refGene to harmonise the input
-        if protocol == "ensGene":
-            key_mapping = {'Chr': 'Chr', 'Start': 'Start', 'End': 'End', 'Func.ensGene': 'Func.refGene',
-                           'Gene.ensGene': 'Gene.refGene', 'GeneDetail.ensGene': 'GeneDetail.refGene',
-                           'ExonicFunc.ensGene': 'ExonicFunc.refGene', 'AAChange.ensGene': 'AAChange.refGene'}
+        if protocol != "refGene":
+            key_mapping = {
+                'Chr': 'Chr',
+                'Start': 'Start',
+                'End': 'End',
+                'Func.'+protocol: 'Func.refGene',
+                'Gene.'+protocol: 'Gene.refGene',
+                'GeneDetail.'+protocol: 'GeneDetail.refGene',
+                'ExonicFunc.'+protocol: 'ExonicFunc.refGene',
+                'AAChange.'+protocol : 'AAChange.refGene'
+            }
             for old_key, new_key in key_mapping.items():
                 essential_cols_dict[new_key] = essential_cols_dict.pop(old_key)
 
