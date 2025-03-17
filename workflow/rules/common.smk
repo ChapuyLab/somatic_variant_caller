@@ -1,21 +1,10 @@
 from pathlib import Path
 import tempfile
+import warnings
 
-
-samples = list()
-if "normal_sample" in config:
-    normal = config["normal_sample"]
-    samples.append(normal)
-else:
-    normal = None
-    print("Using tumour only mode")
-
-if "tumour_sample" in config:
-    tumour = config["tumour_sample"]
-    samples.append(tumour)
-else:
-    raise ValueError("Please define a tumour sample")
-
+"""
+Setting up variables for work, log and scratch_dir
+"""
 if "workdir" in config:
     wrkdir = Path(config["workdir"])
 else:
@@ -36,9 +25,19 @@ else:
         print(get_data_time(), "Scratch directory does not exist")
         os.makedirs(scratch_dir)
 
-if "metadata" not in config:
-    raise ValueError("Please define a metadata file, or bam file paths")
+"""
+Setting up variables related to sample information
+"""
+# The use of metadata is depracated please use tumour_bam_file
+# it is kept for back compatibility
+
+if "metadata" not in config and "tumour_bam_file" not in config:
+    raise ValueError("Please define a metadata file, or bam file paths in config")
 else:
+    warnings.warn(
+        "The 'metadata' configuration is deprecated. It is planned for removal in future versions",
+        DeprecationWarning,
+    )
     metadata = config["metadata"]
 
 if "normal_bam_file" in config:
@@ -51,13 +50,46 @@ if "tumour_bam_file" in config:
 else:
     tumour_bam_file = False
 
-
 if "pid" in config:
     pid = config["pid"]
 else:
     raise ValueError("Please define a pid")
 
+samples = list()  # kept for back compatibility
 
+if "normal_sample" in config:
+    normal = config["normal_sample"]
+    samples.append(normal)
+else:
+    normal = None
+    print("Using tumour only mode")
+
+if "tumour_sample" in config:
+    tumour = config["tumour_sample"]
+    samples.append(tumour)
+else:
+    raise ValueError("Please define a tumour sample")
+
+if "rg_normal" not in config:
+    rg_normal = None
+else:
+    rg_normal = config["rg_normal"]
+
+if "rg_tumour" not in config:
+    rg_tumour = None
+else:
+    rg_tumour = config["rg_tumour"]
+
+
+if normal is not None:
+    output_prefix = str(pid) + "_" + tumour + "_" + normal
+else:
+    output_prefix = str(pid) + "_" + tumour
+
+
+"""
+Setup variables for database used by mutect2
+"""
 if "common_biallelic" not in config:
     raise ValueError("Please define a common_biallelic file")
 else:
@@ -79,36 +111,59 @@ if "pon" not in config:
 else:
     pon = config["pon"]
 
+"""
+The target file only to declared for WES and Panel data
+Scatter count that should be used
+Only use for WES or Panel sequencing otherwise
+please download the scatter list from
+https://console.cloud.google.com/storage/browser/gatk-legacy-bundles/b37/scattered_wgs_intervals/scatter-80
+which divides the genome into 80 intervals
+"""
 
-target_file = config["target_file"] if "target_file" in config else False
+if "target_file" in config:
+    print("Using Targeted/WES Sequencing mode")
+    target_file = config["target_file"]
+    scatter_count = int(config["scatter_count"]) if "scatter_count" in config else 50
+    interval_folder = False
+    # beware please make the scatter appropriate to the number of intervals you have in bed file#
+else:
+    print("Using WGS mode")
+    if "interval_folder" in config:
+        scatter_count = 80
+        interval_folder = Path(config["interval_folder"])
+    else:
+        print("Interval folder not found in config")
+        scatter_count = 22
+    target_file = False
 
-
-scatter_count = (
-    int(config["scatter_count"]) if "scatter_count" in config else 22
-)  # beware please make the scatter appropriate to the number of intervals you have in bed file#
-
-
+"""
+Set up variables related to annovar
+"""
 run_annovar = config["run_annovar"] if "run_annovar" in config else False
 
-path_to_annovar = Path(config["path_to_annovar"])
-annovar_db = Path(config["annovar_db"])
+if run_annovar:
+    path_to_annovar = Path(config["path_to_annovar"])
+    annovar_db = Path(config["annovar_db"])
 
-if "rg_normal" not in config:
-    rg_normal = None
-else:
-    rg_normal = config["rg_normal"]
+    if "protocol" in config and "operation" in config and "geneDatabase" in config:
+        annovar_protocol = config["protocol"]
+        annovar_operation = config["operation"]
+        geneDatabase = config["geneDatabase"]
+    else:
+        if "protocol" not in config or "operation" in config:
+            print(
+                "Both Protocol and operation need to be defined for annovar, falling back to default"
+            )
+        annovar_protocol = (
+            "wgEncodeGencodeBasicV19,cytoBand,avsnp150,dbnsfp42c,clinvar_20240917"
+        )
+        annovar_operation = "g,r,f,f,f"
+        geneDatabase = "wgEncodeGencodeBasicV19"
 
-if "rg_tumour" not in config:
-    rg_tumour = None
-else:
-    rg_tumour = config["rg_tumour"]
 
-
-if normal is not None:
-    output_prefix = str(pid) + "_" + tumour + "_" + normal
-else:
-    output_prefix = str(pid) + "_" + tumour
-
+"""
+Set up variables for Sample swap check betweem tumor and normal samples
+"""
 if "LOD" not in config:
     raise ValueError("Please define a LOD file")
 else:
@@ -124,11 +179,17 @@ if "haplotypemap" not in config:
 else:
     haplotypemap = config["haplotypemap"]
 
+"""
+Setup variables for detin
+"""
 if "pkl_detin" not in config:
     raise ValueError("Please provide pickle file")
 else:
     pickle_high_af = config["pkl_detin"]
 
+"""
+Set the variable for blat filter
+"""
 if "genome_build" not in config:
     raise ValueError("Please provide genome build")
 else:
@@ -138,6 +199,5 @@ if "insertSize" in config:
     insertSize = config["insertSize"]
 else:
     insertSize = None
-# blat_binary = "/dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/executables/blat"
-# faToTwoBit_binary = "/dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/executables/faToTwoBit"
-stepper = "all"
+
+stepper = config["stepper"] if "stepper" in config else None
