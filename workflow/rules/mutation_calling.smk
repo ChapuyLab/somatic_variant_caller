@@ -36,31 +36,61 @@ rule SplitIntervals:
         nodes=1,
     shell:
         "gatk --java-options '-Xmx{resources.mem_mb}m' SplitIntervals -R {input.genome} "
-        "{params.target_file} --subdivision-mode {params.subdivision_mode} --scatter-count {params.scatter_count} -O {output.intervals} &> {log}"
+        "{params.target_file} --subdivision-mode {params.subdivision_mode} "
+        "--scatter-count {params.scatter_count} -O {output.intervals}"
+        #" &> {log}"
+
+
+def getInterval(scatter):
+    if len(str(int(scatter) + 1)) == 1:
+        return "0" + str(int(scatter) + 1)
+    else:
+        return str(int(scatter) + 1)
+
+
+def getIntervalFile(wildcards):
+    intervalFile = (
+        interval_folder
+        / (getInterval(wildcards.scatter) + "_of_80")
+        / "scattered.interval_list"
+    )
+    return intervalFile
 
 
 rule mutect:
     input:
-        normal=wrkdir / "alignments" / (normal + ".bam") if normal else [],
-        tumour=wrkdir / "alignments" / (tumour + ".bam"),
+        normal=(
+            normal_bam_file
+            if normal_bam_file
+            else wrkdir / "alignments" / (normal + ".bam") if normal else []
+        ),
+        tumour=(
+            tumour_bam_file
+            if tumour_bam_file
+            else wrkdir / "alignments" / (tumour + ".bam")
+        ),
         genome=genome,
         germline=germline,
-        interval=wrkdir / "intervals" / "{scatter}-scattered.interval_list",
+        interval=(
+            getIntervalFile
+            if interval_folder
+            else wrkdir / "intervals" / "{scatter}-scattered.interval_list"
+        ),
         pon=pon if pon else [],
     params:
+        normal=(
+            "-I "
+            + (
+                normal_bam_file
+                if normal_bam_file
+                else wrkdir / "alignments" / (normal + ".bam")
+            )
+            if normal
+            else []
+        ),
         rg_tumour=config["rg_tumour"],
         rg_normal="-normal " + config["rg_normal"] if normal else "",
-        pon="-pon " + pon if pon else "",
-        inputs=" ".join(
-            [
-                "-I " + str(i)
-                for i in [
-                    wrkdir / "alignments" / (normal + ".bam") if normal else "",
-                    wrkdir / "alignments" / (tumour + ".bam"),
-                ]
-                if i != ""
-            ]
-        ),
+        pon="-pon " + pon + " --genotype-pon-sites true " if pon else "",
     output:
         vcf=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf"),
         stats=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf.stats"),
@@ -78,15 +108,17 @@ rule mutect:
         nodes=1,
     shell:
         "gatk --java-options '-Xmx{resources.mem_mb}m' Mutect2 -R {input.genome} "
-        "{params.inputs} "
+        "-I {input.tumour} "
+        "{params.normal} "
         "{params.rg_normal} "
-        "-germline-resource {input.germline} "
+        "--germline-resource {input.germline} "
         "--native-pair-hmm-threads {threads} "
         "--genotype-germline-sites true "
         "--f1r2-tar-gz {output.f1r2} "
         "{params.pon} "
         "-L {input.interval} "
-        "-O {output.vcf} &> {log}"
+        "-O {output.vcf}"
+        #" &> {log}"
 
 
 rule GatherVCFFiles:
@@ -131,7 +163,8 @@ rule GatherVCFFiles:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' GatherVcfs {params.vcf} -O {output.vcf} &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' GatherVcfs {params.vcf} -O {output.vcf}"
+        #" &> {log}"
 
 
 rule MergeMutectStats:
@@ -175,4 +208,5 @@ rule MergeMutectStats:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' MergeMutectStats {params.stats} -O {output.stats} &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' MergeMutectStats {params.stats} -O {output.stats}"
+        #" &> {log}"
