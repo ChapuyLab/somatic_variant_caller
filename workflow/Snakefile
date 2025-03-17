@@ -2,7 +2,7 @@ container: "docker://condaforge/mambaforge"
 
 
 include: "rules/common.smk"
-include: "rules/create_links.smk"
+# include: "rules/create_links.smk"
 include: "rules/contamination.smk"
 include: "rules/mutation_calling.smk"
 include: "rules/post_processing.smk"
@@ -11,69 +11,44 @@ include: "rules/makeMaf.smk"
 include: "rules/blatFilter.smk"
 
 
+print("Hi")
+expander = ["_filtered"]
+
+if normal:
+    expander += ["_filtered.rescue"]
+
+if stepper:
+    expander += [i + ".blat" for i in expander]
+
+
 rule all:
     input:
-        expand(
-            wrkdir / str(output_prefix + "{ifrescue}.vcf"),
-            ifrescue=(
-                [
-                    "_filtered",
-                    "_filtered.blat",
-                    "_filtered.rescue",
-                    "_filtered.rescue.blat",
-                ]
-                if normal
-                else ["_filtered", "_filtered.blat"]
-            ),
-        ),
+        expand(wrkdir / str(output_prefix + "{ifrescue}.vcf"), ifrescue=expander),
         wrkdir / str(output_prefix + "_filtered.vcf.idx"),
         wrkdir / str(output_prefix + "_filtered.vcf.filteringStats.tsv"),
         wrkdir / str(output_prefix + ".crosscheck_metrics") if normal else [],
         expand(
             wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.txt"),
-            ifrescue=(
-                [
-                    "_filtered",
-                    "_filtered.blat",
-                    "_filtered.rescue",
-                    "_filtered.rescue.blat",
-                ]
-                if normal
-                else ["_filtered", "_filtered.blat"]
-            ),
+            ifrescue=expander,
         )
         if run_annovar
         else [],
         expand(
             wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.maf"),
-            ifrescue=(
-                [
-                    "_filtered",
-                    "_filtered.blat",
-                    "_filtered.rescue",
-                    "_filtered.rescue.blat",
-                ]
-                if normal
-                else ["_filtered", "_filtered.blat"]
-            ),
+            ifrescue=expander,
         )
         if run_annovar
         else [
             expand(
                 wrkdir / str(output_prefix + "{ifrescue}.maf"),
-                ifrescue=(
-                    [
-                        "_filtered",
-                        "_filtered.blat",
-                        "_filtered.rescue",
-                        "_filtered.rescue.blat",
-                    ]
-                    if normal
-                    else ["_filtered", "_filtered.blat"]
-                ),
             )
         ],
         expand(
             wrkdir / "blat" / str(output_prefix + "_{group}.maf"),
             group=["passed", "rejected", "all"],
-        ),
+        )
+        if stepper
+        else [],
+        wrkdir / "alignments" / (tumour + "_insert-size.txt")
+        if "insertSize" not in config
+        else [],

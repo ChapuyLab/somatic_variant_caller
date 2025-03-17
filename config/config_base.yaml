@@ -7,8 +7,9 @@ pkl_detin: <path to pickle file as described in the DeTiN github page>
 
 
 target_file: <if WES or panel data the target file in bed format>
+interval_folder: <only for WGS use the intervals provided by Broad please download this from gatk-leagacy-bundles>
 
-metadata: < deprecated>
+metadata: <deprecated, kept for backcompatibility>
 workdir: <base working directory absolute path>
 logdir: <base logging directory absolute path>
 
@@ -30,3 +31,5 @@ annovar_db: <path to directory containing annovar databases>
 
 LOD: <LOD>
 EXPECT_ALL_GROUPS_TO_MATCH: <bool>
+
+stepper: <all/samtools>
