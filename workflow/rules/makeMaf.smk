@@ -6,7 +6,7 @@ rule annovar2maf:
     params:
         tsb=output_prefix,
         build=genome_build,
-        protocol="refGene",  # replace this later
+        protocol=geneDatabase,  # replace this later
     conda:
         "../envs/detin.yaml"
     threads: 1
@@ -88,7 +88,7 @@ rule addExtraFields:
                     # print(line)
                     line = line.strip().split("\t")
                     # print(len(line))
-                    info_col = line[116].split(":")
+                    info_col = line[129].split(":")
                     line += [
                         info_col[1].split(",")[0],
                         info_col[1].split(",")[1],
