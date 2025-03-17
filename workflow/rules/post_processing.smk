@@ -33,9 +33,7 @@ rule learnReadOrientationModel:
         runtime=72 * 60,
         nodes=1,
     shell:
-        """
-        gatk --java-options '-Xmx{resources.mem_mb}m' LearnReadOrientationModel {params.f1r2} -O {output.table} &> {log}
-        """
+        " gatk --java-options '-Xmx{resources.mem_mb}m' LearnReadOrientationModel {params.f1r2} -O {output.table} "  # &> {log}
 
 
 rule filter_vcf:
@@ -65,7 +63,8 @@ rule filter_vcf:
         "-R {input.genome} "
         "--contamination-table {input.contamination_table} "
         "--tumor-segmentation {input.tumour_segments} "
-        "--ob-priors {input.read_orientation_model} &> {log}"
+        "--ob-priors {input.read_orientation_model}"
+        #" &> {log}"
 
 
 # rule vcf2maf:
@@ -84,7 +83,7 @@ rule convert2callstats:
     log:
         logdir / "detin/callstats_convertor.log",
     resources:
-        mem_mb=8000,
+        mem_mb=24000,
         runtime=72 * 60,
         nodes=1,
     script:
@@ -109,7 +108,7 @@ rule detin:
     log:
         logdir / "detin/detin.log",
     resources:
-        mem_mb=8000,
+        mem_mb=24000,
         runtime=72 * 60,
         nodes=1,
     script:
