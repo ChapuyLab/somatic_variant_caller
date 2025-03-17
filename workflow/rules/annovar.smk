@@ -23,7 +23,7 @@ rule convert2annovar:
         (
             "perl "
             + str(path_to_annovar / "convert2annovar.pl")
-            + " -filter pass -includeinfo -format vcf4 -allsample {input.vcf} -outfile {params.annovar} &> {log}"
+            + " -filter pass -includeinfo -format vcf4 -allsample {input.vcf} -outfile {params.annovar}"  # " &> {log}"
         )
 
 
@@ -33,16 +33,14 @@ rule annotate:
         / "AV_input{ifrescue}"
         / ("AV{ifrescue}." + rg_tumour + ".avinput"),
     output:
-        annotated=temp(
-            wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.txt")
-        ),
+        annotated=wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.txt"),
     params:
         annotated=lambda wildcards: wrkdir
         / str(output_prefix + wildcards.ifrescue + ".avinput"),
         # this is need as annovar will add the suffix to the output file
         genome_ver="hg19",
-        protocol="refGene,cytoBand,avsnp150,dbnsfp42c",
-        operation="g,r,f,f",
+        protocol=annovar_protocol,
+        operation=annovar_operation,
     conda:
         "../envs/annovar.yaml"
     threads: 1
@@ -60,5 +58,5 @@ rule annotate:
             + str(annovar_db)
             + " "
             + "-buildver {params.genome_ver} -outfile {params.annotated} -remove -protocol {params.protocol}"
-            + " -operation {params.operation} --otherinfo -nastring . -polish &> {log}"
+            + " -operation {params.operation} --otherinfo -nastring . -polish"  # &> {log}"
         )
