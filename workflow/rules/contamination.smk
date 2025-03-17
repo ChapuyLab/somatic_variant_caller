@@ -1,6 +1,19 @@
+def getBAM(wildcards):
+    if normal == wildcards.sample:
+        if normal_bam_file:
+            return normal_bam_file
+        else:
+            return wrkdir / "alignments" / (normal + ".bam")
+    else:
+        if tumour_bam_file:
+            return tumour_bam_file
+        else:
+            return wrkdir / "alignments" / (tumour + ".bam")
+
+
 rule pileupSummaries:
     input:
-        bam=wrkdir / "alignments" / "{sample}.bam",
+        bam=getBAM,
         variant=config["common_biallelic"],
     output:
         table=temp(wrkdir / "{sample}.pileup.table"),
@@ -14,7 +27,7 @@ rule pileupSummaries:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' GetPileupSummaries -I {input.bam} -V {input.variant} -L {input.variant} -O {output.table} &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' GetPileupSummaries -I {input.bam} -V {input.variant} -L {input.variant} -O {output.table}"  #" &> {log}"
 
 
 rule CalculateContamination:
@@ -38,13 +51,21 @@ rule CalculateContamination:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' CalculateContamination -I {input.tumour} {params.matched} -O {output.table} --tumor-segmentation {output.tumour_segments} &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' CalculateContamination -I {input.tumour} {params.matched} -O {output.table} --tumor-segmentation {output.tumour_segments}"  #" &> {log}"
 
 
 rule CrossCheckFingerprint:
     input:
-        normal=wrkdir / "alignments" / (normal + ".bam") if normal else [],
-        tumour=wrkdir / "alignments" / (tumour + ".bam"),
+        normal=(
+            normal_bam_file
+            if normal_bam_file
+            else wrkdir / "alignments" / (normal + ".bam") if normal else []
+        ),
+        tumour=(
+            tumour_bam_file
+            if tumour_bam_file
+            else wrkdir / "alignments" / (tumour + ".bam")
+        ),
         haplotypemap=haplotypemap,
     params:
         LOD=LOD,
@@ -61,5 +82,8 @@ rule CrossCheckFingerprint:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' CrosscheckFingerprints -I {input.tumour} -I {input.normal} -O {output.crosscheckmetricsfile} "
-        "-H {input.haplotypemap} --LOD {params.LOD} --EXPECT_ALL_GROUPS_TO_MATCH {params.expect_all_groups_to_match} --EXIT_CODE_WHEN_MISMATCH 0 --EXIT_CODE_WHEN_NO_VALID_CHECKS 0 --CROSSCHECK_BY SAMPLE &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' CrosscheckFingerprints -I {input.tumour} "
+        "-I {input.normal} -O {output.crosscheckmetricsfile} "
+        "-H {input.haplotypemap} --LOD {params.LOD} --EXPECT_ALL_GROUPS_TO_MATCH {params.expect_all_groups_to_match} "
+        " --EXIT_CODE_WHEN_MISMATCH 0 --EXIT_CODE_WHEN_NO_VALID_CHECKS 0 --CROSSCHECK_BY SAMPLE"
+        # &> {log}"
