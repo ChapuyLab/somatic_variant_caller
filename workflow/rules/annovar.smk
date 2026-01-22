@@ -47,7 +47,7 @@ rule annotate:
     log:
         logdir / "annovar/annotate{ifrescue}.log",
     resources:
-        mem_mb=4000,
+        mem_mb=10000,
         runtime=72 * 60,
         nodes=1,
     shell:

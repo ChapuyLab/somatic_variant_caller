@@ -163,8 +163,11 @@ def Diff(li1, li2):
 
 def read_annovar_file(file_path, meta, protocol):
     with open(file_path, 'r') as annovar_file:
-        first_line = next(annovar_file).strip()
-
+        # adding '' as default to next since if the input file is empty which would be the case when no variants are found
+        # this will give an iteration error. Hence setting up a graceful exit criterion
+        first_line = next(annovar_file, '').strip()
+        if not first_line:
+            return ''
         essential_cols = ['Chr', 'Start', 'End', 'Ref', 'Alt', 'Func.'+protocol, 'Gene.'+protocol, 'GeneDetail.'+protocol,
                             'ExonicFunc.'+protocol, 'AAChange.'+protocol]
 

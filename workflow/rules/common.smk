@@ -15,15 +15,15 @@ if "logdir" in config:
 else:
     raise ValueError("Please define a logdir")
 
-if "scratch_dir" not in config:
-    scratch_dir = tempfile.gettempdir()
-else:
-    scratch_dir = config[
-        "scratch_dir"
-    ]  # snakemake doesnt accept path in resources has to be a string
-    if not os.path.exists(scratch_dir):
-        print(get_data_time(), "Scratch directory does not exist")
-        os.makedirs(scratch_dir)
+# if "scratch_dir" not in config:
+scratch_dir = tempfile.gettempdir()
+# else:
+#     scratch_dir = config[
+#         "scratch_dir"
+#     ]  # snakemake doesnt accept path in resources has to be a string
+#     if not os.path.exists(scratch_dir):
+#         print(get_data_time(), "Scratch directory does not exist")
+#         os.makedirs(scratch_dir)
 
 """
 Setting up variables related to sample information
@@ -123,7 +123,7 @@ which divides the genome into 80 intervals
 if "target_file" in config:
     print("Using Targeted/WES Sequencing mode")
     target_file = config["target_file"]
-    scatter_count = int(config["scatter_count"]) if "scatter_count" in config else 50
+    scatter_count = int(config["scatter_count"]) if "scatter_count" in config else 10
     interval_folder = False
     # beware please make the scatter appropriate to the number of intervals you have in bed file#
 else:
@@ -201,3 +201,9 @@ else:
     insertSize = None
 
 stepper = config["stepper"] if "stepper" in config else None
+
+if "fake_normal" in config:
+    print("Running with a fake normal")
+    fake_normal = config["fake_normal"]
+else:
+    fake_normal = False

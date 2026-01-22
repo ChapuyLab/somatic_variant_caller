@@ -9,7 +9,7 @@ rule learnReadOrientationModel:
             ],
         ),
     output:
-        table=temp(wrkdir / "read-orientation-model.tar.gz"),
+        table=wrkdir / "read-orientation-model.tar.gz",
     conda:
         "../envs/gatk.yaml"
     params:
@@ -83,7 +83,7 @@ rule convert2callstats:
     log:
         logdir / "detin/callstats_convertor.log",
     resources:
-        mem_mb=24000,
+        mem_mb=50000,
         runtime=72 * 60,
         nodes=1,
     script:
@@ -108,7 +108,7 @@ rule detin:
     log:
         logdir / "detin/detin.log",
     resources:
-        mem_mb=24000,
+        mem_mb=50000,
         runtime=72 * 60,
         nodes=1,
     script:

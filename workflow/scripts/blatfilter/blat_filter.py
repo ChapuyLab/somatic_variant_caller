@@ -295,6 +295,7 @@ class RealignmentFilter:
             maf_start_pos_col_to_score_reads=None,
             maf_pos_col_to_score_reads_empty_value=None,
             mate_insert_size_alpha=0.05,
+            genome=None,
     ):
 
         """
@@ -344,8 +345,12 @@ class RealignmentFilter:
         mate_insert_size_alpha: float
             threshold for p-value test on insert size given the alignment of the mate
         """
-
-        self._input_bam = pysam.AlignmentFile(bam, "rb")
+        readmode="rb"
+        reference_filename = None
+        if bam.endswith('.cram'):
+            readmode="rc"
+            reference_filename = genome
+        self._input_bam = pysam.AlignmentFile(bam, readmode, reference_filename=reference_filename)
         self._blat_aligner = BlatAligner(blat_executable, database, ooc)
         self._input_maf = InputMAF(
             maf,
@@ -428,9 +433,12 @@ class RealignmentFilter:
 
                 # Chip note: do we check flags if a read is a supplemental alignment - feature in BWMem - dealing with split reads?
                 #            Mutect1 does not consider split reads...so should not consider.
-
+                if self._input_bam.is_cram:
+                    multiple_iterators=False
+                else:
+                    multiple_iterators=True
                 for pileupcolumn in self._input_bam.pileup(contig_for_blat, start_pos - 1, start_pos, max_depth=2000000,
-                                                           multiple_iterators=True, stepper=stepper):
+                                                           multiple_iterators=multiple_iterators, stepper=stepper):
                     if pileupcolumn.pos != start_pos - 1:
                         continue
 
@@ -681,8 +689,12 @@ class RealignmentFilter:
                 read_names = set()
 
                 # note that, by default, pileup will ignore orphaned reads (reads not in proper pair)
+                if self._input_bam.is_cram:
+                    multiple_iterators=False
+                else:
+                    multiple_iterators=True
                 for pileupcolumn in self._input_bam.pileup(contig_for_blat, start_pos - 1, start_pos, max_depth=2000000,
-                                                           multiple_iterators=True, stepper=stepper):
+                                                           multiple_iterators=multiple_iterators, stepper=stepper):
                     if pileupcolumn.pos != start_pos - 1:
                         continue
 
@@ -978,7 +990,8 @@ if __name__ == "__main__":
         "maf_t_ref_count_col": "t_ref_count",
         "maf_t_alt_count_col": "t_alt_count",
         "maf_pos_col_to_score_reads_empty_value": -1,
-        "mate_insert_size_alpha": 0.05
+        "mate_insert_size_alpha": 0.05,
+        "genome": snakemake.input.genome
     }
     stepper=snakemake.params.stepper
     print(stepper)

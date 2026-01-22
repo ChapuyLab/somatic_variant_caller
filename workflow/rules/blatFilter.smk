@@ -12,7 +12,7 @@ rule getInsertSize:
         "../envs/gatk.yaml"
     threads: 1
     resources:
-        mem_mb=8000,
+        mem_mb=24000,
         runtime=24 * 60,
         nodes=1,
     log:
@@ -196,6 +196,7 @@ rule BlatFilter:
         ),
         database=wrkdir / "tmp" / "genome.2bit",
         occ=wrkdir / "tmp" / "11.occ",
+        genome=genome,
     params:
         blat_binary="blat",
         output_prefix=lambda wildcards: str(
@@ -306,11 +307,16 @@ rule FilterVaf:
         with open(input.maf) as handle:
             for line in handle:
                 if "#" in line or "Hugo_Symbol" in line:
+                    otherinfoIndex = line.strip().split("\t").index("Otherinfo1")
+                    otherinfo2Index = line.strip().split("\t").index("Otherinfo2")
                     continue
                 else:
                     line = line.strip().split("\t")
                     if line[-1] == "REJECT":
-                        set_reject.add(line[4] + ":" + line[108])
+                        set_reject.add(
+                            line[otherinfoIndex] + ":" + line[otherinfo2Index]
+                        )
+        print("Number of mutations to be filtered out ", len(set_reject))
         with open(input.vcf) as handle, open(output.vcf, "w") as handle_out:
             flag = True
             for line in handle:
@@ -325,7 +331,6 @@ rule FilterVaf:
                         handle_out.write(
                             "##filtering_status=These calls have been further filtered using a blat filter"
                         )
-                    pass
                 elif line[0] + ":" + line[1] in set_reject:
                     line[6] = "blatReject"
                 handle_out.write("\t".join(line) + "\n")

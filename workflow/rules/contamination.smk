@@ -14,6 +14,7 @@ def getBAM(wildcards):
 rule pileupSummaries:
     input:
         bam=getBAM,
+        genome=genome,
         variant=config["common_biallelic"],
     output:
         table=temp(wrkdir / "{sample}.pileup.table"),
@@ -27,19 +28,25 @@ rule pileupSummaries:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' GetPileupSummaries -I {input.bam} -V {input.variant} -L {input.variant} -O {output.table}"  #" &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' GetPileupSummaries -R {input.genome} -I {input.bam} -V {input.variant} -L {input.variant} -O {output.table}"  #" &> {log}"
 
 
 rule CalculateContamination:
     input:
         tumour=wrkdir / str(tumour + ".pileup.table"),
-        normal=wrkdir / str(normal + ".pileup.table") if normal else [],
+        normal=(
+            wrkdir / str(normal + ".pileup.table")
+            if normal and not fake_normal
+            else []
+        ),
     output:
-        table=temp(wrkdir / "contamination.table"),
-        tumour_segments=temp(wrkdir / "tumour.segments"),
+        table=wrkdir / "contamination.table",
+        tumour_segments=wrkdir / "tumour.segments",
     params:
         matched=(
-            "-matched " + str(wrkdir / str(normal + ".pileup.table")) if normal else ""
+            "-matched " + str(wrkdir / str(normal + ".pileup.table"))
+            if normal and not fake_normal
+            else ""
         ),
     conda:
         "../envs/gatk.yaml"
@@ -67,6 +74,7 @@ rule CrossCheckFingerprint:
             else wrkdir / "alignments" / (tumour + ".bam")
         ),
         haplotypemap=haplotypemap,
+        genome=genome,
     params:
         LOD=LOD,
         expect_all_groups_to_match=expect_all_groups_to_match,
@@ -85,5 +93,5 @@ rule CrossCheckFingerprint:
         "gatk --java-options '-Xmx{resources.mem_mb}m' CrosscheckFingerprints -I {input.tumour} "
         "-I {input.normal} -O {output.crosscheckmetricsfile} "
         "-H {input.haplotypemap} --LOD {params.LOD} --EXPECT_ALL_GROUPS_TO_MATCH {params.expect_all_groups_to_match} "
-        " --EXIT_CODE_WHEN_MISMATCH 0 --EXIT_CODE_WHEN_NO_VALID_CHECKS 0 --CROSSCHECK_BY SAMPLE"
+        " --EXIT_CODE_WHEN_MISMATCH 0 --EXIT_CODE_WHEN_NO_VALID_CHECKS 0 --CROSSCHECK_BY SAMPLE -R {input.genome}"
         # &> {log}"

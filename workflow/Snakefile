@@ -11,7 +11,6 @@ include: "rules/makeMaf.smk"
 include: "rules/blatFilter.smk"
 
 
-print("Hi")
 expander = ["_filtered"]
 
 if normal:
@@ -26,7 +25,7 @@ rule all:
         expand(wrkdir / str(output_prefix + "{ifrescue}.vcf"), ifrescue=expander),
         wrkdir / str(output_prefix + "_filtered.vcf.idx"),
         wrkdir / str(output_prefix + "_filtered.vcf.filteringStats.tsv"),
-        wrkdir / str(output_prefix + ".crosscheck_metrics") if normal else [],
+        # wrkdir / str(output_prefix + ".crosscheck_metrics") if normal else [],
         expand(
             wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.txt"),
             ifrescue=expander,

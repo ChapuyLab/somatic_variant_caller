@@ -138,8 +138,8 @@ rule GatherVCFFiles:
             ],
         ),
     output:
-        vcf=temp(wrkdir / "unfiltered.vcf"),
-        idx=temp(wrkdir / "unfiltered.vcf.idx"),
+        vcf=wrkdir / "unfiltered.vcf",
+        idx=wrkdir / "unfiltered.vcf.idx",
     conda:
         "../envs/gatk.yaml"
     params:
