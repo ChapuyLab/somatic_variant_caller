@@ -23,7 +23,7 @@ rule convert2annovar:
         (
             "perl "
             + str(path_to_annovar / "convert2annovar.pl")
-            + " -filter pass -includeinfo -format vcf4 -allsample {input.vcf} -outfile {params.annovar}"  # " &> {log}"
+            + " -filter pass -includeinfo -format vcf4 -allsample {input.vcf} -outfile {params.annovar} &> {log}"
         )
 
 
@@ -58,5 +58,5 @@ rule annotate:
             + str(annovar_db)
             + " "
             + "-buildver {params.genome_ver} -outfile {params.annotated} -remove -protocol {params.protocol}"
-            + " -operation {params.operation} --otherinfo -nastring . -polish"  # &> {log}"
+            + " -operation {params.operation} --otherinfo -nastring . -polish &> {log}"
         )

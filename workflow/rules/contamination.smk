@@ -28,7 +28,7 @@ rule pileupSummaries:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' GetPileupSummaries -R {input.genome} -I {input.bam} -V {input.variant} -L {input.variant} -O {output.table}"  #" &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' GetPileupSummaries -R {input.genome} -I {input.bam} -V {input.variant} -L {input.variant} -O {output.table} &> {log}"
 
 
 rule CalculateContamination:
@@ -58,7 +58,7 @@ rule CalculateContamination:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' CalculateContamination -I {input.tumour} {params.matched} -O {output.table} --tumor-segmentation {output.tumour_segments}"  #" &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' CalculateContamination -I {input.tumour} {params.matched} -O {output.table} --tumor-segmentation {output.tumour_segments} &> {log}"
 
 
 rule CrossCheckFingerprint:
@@ -93,5 +93,4 @@ rule CrossCheckFingerprint:
         "gatk --java-options '-Xmx{resources.mem_mb}m' CrosscheckFingerprints -I {input.tumour} "
         "-I {input.normal} -O {output.crosscheckmetricsfile} "
         "-H {input.haplotypemap} --LOD {params.LOD} --EXPECT_ALL_GROUPS_TO_MATCH {params.expect_all_groups_to_match} "
-        " --EXIT_CODE_WHEN_MISMATCH 0 --EXIT_CODE_WHEN_NO_VALID_CHECKS 0 --CROSSCHECK_BY SAMPLE -R {input.genome}"
-        # &> {log}"
+        " --EXIT_CODE_WHEN_MISMATCH 0 --EXIT_CODE_WHEN_NO_VALID_CHECKS 0 --CROSSCHECK_BY SAMPLE -R {input.genome} &> {log}"

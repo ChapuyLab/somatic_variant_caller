@@ -37,8 +37,7 @@ rule SplitIntervals:
     shell:
         "gatk --java-options '-Xmx{resources.mem_mb}m' SplitIntervals -R {input.genome} "
         "{params.target_file} --subdivision-mode {params.subdivision_mode} "
-        "--scatter-count {params.scatter_count} -O {output.intervals}"
-        #" &> {log}"
+        "--scatter-count {params.scatter_count} -O {output.intervals} &> {log}"
 
 
 def getInterval(scatter):
@@ -117,8 +116,7 @@ rule mutect:
         "--f1r2-tar-gz {output.f1r2} "
         "{params.pon} "
         "-L {input.interval} "
-        "-O {output.vcf}"
-        #" &> {log}"
+        "-O {output.vcf} &> {log}"
 
 
 rule GatherVCFFiles:
@@ -163,8 +161,7 @@ rule GatherVCFFiles:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' GatherVcfs {params.vcf} -O {output.vcf}"
-        #" &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' GatherVcfs {params.vcf} -O {output.vcf} &> {log}"
 
 
 rule MergeMutectStats:
@@ -208,5 +205,4 @@ rule MergeMutectStats:
         runtime=72 * 60,
         nodes=1,
     shell:
-        "gatk --java-options '-Xmx{resources.mem_mb}m' MergeMutectStats {params.stats} -O {output.stats}"
-        #" &> {log}"
+        "gatk --java-options '-Xmx{resources.mem_mb}m' MergeMutectStats {params.stats} -O {output.stats} &> {log}"

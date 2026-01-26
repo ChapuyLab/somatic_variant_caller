@@ -46,7 +46,7 @@ rule vcf2maf:
         "--input-vcf {input.vcf} "
         "--output-maf {output.maf} "
         "--ref-fasta {params.genome} "
-        "{params.tumour_id} {params.normal_id}"
+        "{params.tumour_id} {params.normal_id} &> {log}"
 
 
 rule addExtraFields:

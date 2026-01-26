@@ -20,7 +20,7 @@ rule getInsertSize:
     message:
         "Collecting insert size metrics"
     shell:
-        "gatk CollectInsertSizeMetrics -I {input.bam} -O {output.insert_size} -H {output.insert_size_pdf}"  #" &> {log}"
+        "gatk CollectInsertSizeMetrics -I {input.bam} -O {output.insert_size} -H {output.insert_size_pdf} &> {log}"
 
 
 rule gen_occ:
@@ -48,7 +48,7 @@ rule gen_occ:
         "{input.genome} "
         "-makeOoc={params.file_name} "
         "-t=dna -q=dna "
-        "{output.blat_temp_out} "
+        "{output.blat_temp_out} &> {log}"
 
 
 rule gen_2bit:
@@ -68,7 +68,7 @@ rule gen_2bit:
     shell:
         "faToTwoBit "
         "{input.genome} "
-        "{output} "
+        "{output} &> {log}"
 
 
 checkpoint scatter_maf:
