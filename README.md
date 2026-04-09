@@ -5,7 +5,7 @@ This repository contains a Snakemake-based pipeline for running somatic variant 
 
 The setup and job orchestration are managed via a helper Jupyter Notebook, which generates sample-specific configurations and execution scripts.
 
-## 📌 Features
+## Features
 
 Sample Configurations: Supports matched Tumor-Normal pairs, Tumor-Only runs, and "Fake Normal" fallbacks.
 
@@ -44,6 +44,9 @@ deTiN Data: Requires high AF ExAC pickle file (exac.pickle_high_af).
 
 Target Baits: An Agilent SureSelectv2 bed file is used by default (Agilent_SureSelectv2_baits.bed).
 
+## Setup and Pipeline Execution
+The workflow is orchestrated using the provided helper notebook (helper.ipynb). Please follow the steps in there to run the pipeline Which can be run in the base_env mamba environment
+
 ## Metadata Preparation
 The pipeline requires a metadata dataframe to map your .cram or .bam files. If you used the ChapuyLab alignment pipeline, the notebook can automatically generate this.
 
@@ -58,10 +61,6 @@ PATIENT_ID: A unique identifier for the patient. Do not use underscores (_).
 SAMPLE_NAME: A unique identifier combining Patient ID and Sample Type (e.g., PATIENT-1_tumor).
 
 Safety Check: The notebook enforces strict uniqueness on the SAMPLE_NAME column to prevent job collisions and accidental data overwriting.
-
-
-## Setup and Pipeline Execution
-The workflow is orchestrated using the provided helper notebook (helper.ipynb). Please follow the steps in there to run the pipeline Which can be run in the base_env mamba environment
 
 ## Special Notes
 
