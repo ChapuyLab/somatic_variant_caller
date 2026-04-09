@@ -1,0 +1,20 @@
+# use-conda: true
+jobs: 10
+
+latency-wait: 60
+reason: True
+
+keep-going: True
+printshellcmds: True
+rerun-incomplete: True
+restart-times: 2
+
+default-resources:
+  - partition="" # please modifiy for slurm related parafernalias
+  - slurm="exclude=compute[011-013,015-017,020,022,023,032,037,039]"
+
+# delete-temp-output: True
+conda-prefix: somatic_variant_caller/conda_env_singularity
+# conda-prefix: /dh-projects/richter_transformation/analysis/wgs_analysis/alignment_pipeline/conda_envs_ohne_singularity
+singularity-prefix: somatic_variant_caller/Singularity
+singularity-args: "-B /:/" # modify this for the bindings singularity needs

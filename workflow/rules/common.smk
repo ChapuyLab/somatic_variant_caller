@@ -28,17 +28,6 @@ scratch_dir = tempfile.gettempdir()
 """
 Setting up variables related to sample information
 """
-# The use of metadata is depracated please use tumour_bam_file
-# it is kept for back compatibility
-
-if "metadata" not in config and "tumour_bam_file" not in config:
-    raise ValueError("Please define a metadata file, or bam file paths in config")
-else:
-    warnings.warn(
-        "The 'metadata' configuration is deprecated. It is planned for removal in future versions",
-        DeprecationWarning,
-    )
-    metadata = config["metadata"]
 
 if "normal_bam_file" in config:
     normal_bam_file = config["normal_bam_file"]

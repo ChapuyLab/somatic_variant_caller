@@ -1,7 +1,7 @@
 genome: <path2referece fasta>
 common_biallelic: <path to small_exac_common_3.vcf>
 germline: <path to germline mutations example af-only-gnomad.raw.sites.vcf>
-haplotypemap: /dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/reference/hg19_nochr.map
+haplotypemap: <path to haplotype map>
 pon: <path to panel of normals>
 pkl_detin: <path to pickle file as described in the DeTiN github page>
 
