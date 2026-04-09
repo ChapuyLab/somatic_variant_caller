@@ -328,7 +328,9 @@ def select_candidate_mutations(call_stats_table, exac_db_file):
     failure_reasons = np.array(call_stats_table['failure_reasons'])
 
     candidate_sites = call_stats_table[np.logical_or.reduce(np.array([np.array(call_stats_table['judgement']) == 'KEEP',
-                                                                      failure_reasons == 'normal_artifact',
+                                                                      failure_reasons == 'normal_artifact,germline',
+                                                                      failure_reasons == "germline",
+                                                                      failure_reasons == "normal_artifact"
                                                                      ]))]
     candidate_sites['t_depth'] = candidate_sites['t_alt_count'] + candidate_sites['t_ref_count']
     candidate_sites['n_depth'] = candidate_sites['n_alt_count'] + candidate_sites['n_ref_count']

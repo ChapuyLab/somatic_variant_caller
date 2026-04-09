@@ -202,7 +202,7 @@ else:
 
 stepper = config["stepper"] if "stepper" in config else None
 
-if "fake_normal" in config:
+if "fake_normal" in config and config["fake_normal"]:
     print("Running with a fake normal")
     fake_normal = config["fake_normal"]
 else:

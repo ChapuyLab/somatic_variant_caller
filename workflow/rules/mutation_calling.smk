@@ -90,6 +90,9 @@ rule mutect:
         rg_tumour=config["rg_tumour"],
         rg_normal="-normal " + config["rg_normal"] if normal else "",
         pon="-pon " + pon + " --genotype-pon-sites true " if pon else "",
+        add_mutect_params=(
+            config["add_mutect_params"] if "add_mutect_params" in config else ""
+        ),
     output:
         vcf=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf"),
         stats=temp(wrkdir / "tmp" / "unfiltered_{scatter}.vcf.stats"),
@@ -114,6 +117,7 @@ rule mutect:
         "--native-pair-hmm-threads {threads} "
         "--genotype-germline-sites true "
         "--f1r2-tar-gz {output.f1r2} "
+        "{params.add_mutect_params} "
         "{params.pon} "
         "-L {input.interval} "
         "-O {output.vcf} &> {log}"

@@ -49,6 +49,10 @@ rule filter_vcf:
         vcf=wrkdir / str(output_prefix + "_filtered.vcf"),
         idx=wrkdir / str(output_prefix + "_filtered.vcf.idx"),
         stats=wrkdir / str(output_prefix + "_filtered.vcf.filteringStats.tsv"),
+    params:
+        filter_mutect_extra=(
+            config["filter_mutect_extra"] if "filter_mutect_extra" in config else ""
+        ),
     conda:
         "../envs/gatk.yaml"
     threads: 4
@@ -63,7 +67,7 @@ rule filter_vcf:
         "-R {input.genome} "
         "--contamination-table {input.contamination_table} "
         "--tumor-segmentation {input.tumour_segments} "
-        "--ob-priors {input.read_orientation_model} &> {log}"
+        "--ob-priors {input.read_orientation_model} {params.filter_mutect_extra} &> {log}"
 
 
 # rule vcf2maf:

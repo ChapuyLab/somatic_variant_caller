@@ -603,6 +603,7 @@ def main():
 
         # combine models and reclassify mutations
     do = output(di, ssnv_based_model, ascna_based_model)
+    print("hi")
     do.calculate_joint_estimate()
     if len(do.SSNVs)>1:
         do.reclassify_mutations()
