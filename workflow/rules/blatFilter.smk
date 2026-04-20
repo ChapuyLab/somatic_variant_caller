@@ -5,6 +5,7 @@ rule getInsertSize:
             if tumour_bam_file
             else wrkdir / "alignments" / (tumour + ".bam")
         ),
+        genome=genome,
     output:
         insert_size=wrkdir / "alignments" / (tumour + "_insert-size.txt"),
         insert_size_pdf=wrkdir / "alignments" / (tumour + "_insert-size.pdf"),
@@ -12,7 +13,7 @@ rule getInsertSize:
         "../envs/gatk.yaml"
     threads: 1
     resources:
-        mem_mb=24000,
+        mem_mb=20000,
         runtime=24 * 60,
         nodes=1,
     log:
@@ -20,7 +21,7 @@ rule getInsertSize:
     message:
         "Collecting insert size metrics"
     shell:
-        "gatk CollectInsertSizeMetrics -I {input.bam} -O {output.insert_size} -H {output.insert_size_pdf} &> {log}"
+        "gatk CollectInsertSizeMetrics -I {input.bam} -O {output.insert_size} -H {output.insert_size_pdf} -R {input.genome} &> {log}"
 
 
 rule gen_occ:
@@ -219,7 +220,7 @@ rule BlatFilter:
     log:
         logdir / "blat" / "{sample}_{scatter}_blat_filter.log",
     resources:
-        mem_mb=4000,
+        mem_mb=8000,
         runtime=60 * 24 * 1,
         nodes=1,
     script:
