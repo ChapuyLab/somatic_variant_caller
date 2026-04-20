@@ -6,3 +6,4 @@ dependencies:
   - gatk4=4.3.0.0
   - snakemake=7.32.4
   - pandas
+  - perl=5.32.1
