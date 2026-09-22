@@ -46,7 +46,7 @@ rule vcf2maf:
         "--input-vcf {input.vcf} "
         "--output-maf {output.maf} "
         "--ref-fasta {params.genome} "
-        "{params.tumour_id} {params.normal_id} &> {log}"
+        "{params.tumor_id} {params.normal_id} &> {log}"
 
 
 rule addExtraFields:
@@ -77,21 +77,31 @@ rule addExtraFields:
     message:
         "Adding VAF, ref count information to maf"
     run:
+        genotype_col_idx = None
         with open(input.maf) as handle, open(output.maf, "w") as handle_out:
             for line in handle:
                 if "#" in line:
                     line = line.strip()
                 elif "Hugo_Symbol" in line:
                     line = line.strip().split("\t")
+                    # Dynamically find the column containing FORMAT:SAMPLE genotype data
+                    # In ANNOVAR-extended MAFs, this is typically the last Otherinfo column
+                    for idx, col in enumerate(line):
+                        if col.startswith("Otherinfo"):
+                            genotype_col_idx = (
+                                idx  # keep updating; the last one has genotype
+                            )
                     line += ["t_ref_count", "t_alt_count", "AF"]
                 else:
-                    # print(line)
                     line = line.strip().split("\t")
-                    # print(len(line))
-                    info_col = line[129].split(":")
-                    line += [
-                        info_col[1].split(",")[0],
-                        info_col[1].split(",")[1],
-                        info_col[2],
-                    ]
+                    try:
+                        info_col = line[genotype_col_idx].split(":")
+                        line += [
+                            info_col[1].split(",")[0],
+                            info_col[1].split(",")[1],
+                            info_col[2],
+                        ]
+                    except (IndexError, TypeError):
+                        # If parsing fails, fill with NA to avoid crashing
+                        line += ["NA", "NA", "NA"]
                 handle_out.write("\t".join(line) + "\n")

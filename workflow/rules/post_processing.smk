@@ -3,10 +3,7 @@ rule learnReadOrientationModel:
     input:
         f1r2=expand(
             wrkdir / "tmp" / "f1r2_{scatter}.tar.gz",
-            scatter=[
-                "00" + str(i) if i > 9 else "000" + str(i)
-                for i in range(scatter_count)
-            ],
+            scatter=scatter_ids,
         ),
     output:
         table=wrkdir / "read-orientation-model.tar.gz",
@@ -18,14 +15,11 @@ rule learnReadOrientationModel:
                 "-I " + i
                 for i in expand(
                     wrkdir / "tmp" / "f1r2_{scatter}.tar.gz",
-                    scatter=[
-                        "00" + str(i) if i > 9 else "000" + str(i)
-                        for i in range(scatter_count)
-                    ],
+                    scatter=scatter_ids,
                 )
             ]
         ),
-    threads: 4
+    threads: 1
     log:
         logdir / "gatk/readorientation.log",
     resources:

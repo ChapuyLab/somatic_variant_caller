@@ -30,9 +30,9 @@ rule gen_occ:
     params:
         file_name="11.occ",
     output:
-        output_dir=directory(wrkdir / "tmp"),
-        occ=temp(wrkdir / "tmp" / "11.occ"),
-        blat_temp_out=temp(wrkdir / "tmp" / "genome.psl"),
+        output_dir=directory(wrkdir / "blat_tmp"),
+        occ=temp(wrkdir / "blat_tmp" / "11.occ"),
+        blat_temp_out=temp(wrkdir / "blat_tmp" / "genome.psl"),
     threads: 1
     log:
         logdir / "blat" / "Gen_Occ.log",
@@ -56,7 +56,7 @@ rule gen_2bit:
     input:
         genome=genome,
     output:
-        temp(wrkdir / "tmp" / "genome.2bit"),
+        temp(wrkdir / "blat_tmp" / "genome.2bit"),
     threads: 1
     log:
         logdir / "tmp" / "Gen_2Bit_genome.log",
@@ -85,7 +85,7 @@ checkpoint scatter_maf:
             / str(output_prefix + "_filtered.avinput.hg19_multianno.extended_info.maf")
         ),
     params:
-        max_mut=10000,
+        max_mut=max_mut,
     output:
         maf_tmp=directory(wrkdir / "scatter_tmp_{sample}"),
     threads: 1
@@ -100,6 +100,7 @@ checkpoint scatter_maf:
         import pandas as pd
         from pathlib import Path
         import os
+        import math
 
         set_input = set()
         line_count = 0
@@ -118,7 +119,8 @@ checkpoint scatter_maf:
                     line_count += 1
                     # Calculate # of Chunks
         if line_count > params.max_mut:
-            scatter_count = line_count // params.max_mut
+            scatter_count = math.ceil(line_count / params.max_mut)
+            # scatter_count = line_count // params.max_mut
         else:
             scatter_count = 1
         chunksize = np.array_split(np.array(range(0, line_count)), scatter_count)
@@ -195,8 +197,8 @@ rule BlatFilter:
             if insertSize is None
             else insertSize
         ),
-        database=wrkdir / "tmp" / "genome.2bit",
-        occ=wrkdir / "tmp" / "11.occ",
+        database=wrkdir / "blat_tmp" / "genome.2bit",
+        occ=wrkdir / "blat_tmp" / "11.occ",
         genome=genome,
     params:
         blat_binary="blat",
@@ -325,12 +327,12 @@ rule FilterVaf:
                 if "#" == line[0][0]:
                     if "##FILTER" in line and flag:
                         handle_out.write(
-                            '##FILTER=<ID=blatReject,Description="Mutation does not meet criteria of a blat Filter">'
+                            '##FILTER=<ID=blatReject,Description="Mutation does not meet criteria of a blat Filter">\n'
                         )
                         flag = False
                     if "##filtering_status" in line:
                         handle_out.write(
-                            "##filtering_status=These calls have been further filtered using a blat filter"
+                            "##filtering_status=These calls have been further filtered using a blat filter\n"
                         )
                 elif line[0] + ":" + line[1] in set_reject:
                     line[6] = "blatReject"

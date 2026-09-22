@@ -21,7 +21,7 @@ The setup and job orchestration are managed via a helper Jupyter Notebook, which
 ### 1. Clone the Repository
 First, clone the pipeline to your local environment or HPC cluster and navigate into the directory:
 ```bash
-git clone [https://github.com/ChapuyLab/somatic_variant_caller.git](https://github.com/ChapuyLab/somatic_variant_caller.git)
+git clone https://github.com/ChapuyLab/somatic_variant_caller.git
 cd somatic_variant_caller
 ```
 
@@ -100,6 +100,7 @@ perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar dbnsfp42c hum
 # 5. Filter-based annotation (ClinVar - Sept 17, 2024)
 perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar clinvar_20240917 humandb/
 ```
+
 ### 3. Configure the Snakemake Profile
 Before running the setup notebook or any jobs, you **must** edit the Snakemake profile configuration file located at `profile/config.yaml` to match your cluster's architecture.
 
@@ -139,6 +140,21 @@ The workflow is orchestrated using the provided helper notebook (`helper.ipynb`)
 * Please follow the steps within the notebook to run the pipeline.
 * Ensure the notebook is launched and run directly from the `base_env` mamba environment located at the root of your cloned repository.
 
+### Local (Non-SLURM) Execution
+
+If you are running on a local machine without a SLURM cluster, set `RUN_LOCAL = True` in the helper notebook. The generated scripts will use `--cores 8` instead of `--profile`. To run manually:
+
+```bash
+mamba activate base_env
+cd /path/to/sample/workdir
+snakemake \
+  --cores 8 \
+  --use-singularity --use-conda --conda-frontend mamba \
+  --workflow-profile profile/config.yaml \
+  --configfile /path/to/sample.yaml \
+  --snakefile /path/to/mutect2_pipeline/workflow/Snakefile
+```
+
 ### Cache Environments and Containers
 
 On many HPC clusters, compute nodes do not have internet access, or downloading massive Singularity images on the fly can cause jobs to time out. You can force Snakemake to pre-install all Conda environments and pull all Singularity containers from your head node *without* executing the actual pipeline.
@@ -152,13 +168,24 @@ snakemake \
   --use-conda \
   --use-singularity \
   --conda-create-envs-only \
-  --profile cubi-v1
+  --profile cubi-v1 \
   --workflow-profile profile \
   -c 1 \
   --configfile path/to/results/view_by_pid/PATIENT_ID/somatic_mutations/SAMPLE_NAME/SAMPLE_NAME.yaml
 ```
 
 *Note: You only need to do this once. Once the environments and containers are cached in your `.snakemake` folder, all subsequently submitted cluster jobs will automatically detect and use them.*
+
+---
+
+## WGS Interval Configuration
+
+For **WGS data**, the pipeline splits the genome into intervals for parallel processing. You have two options:
+
+1. **Pre-built intervals (Recommended):** Download the 80-interval scatter list from the [GATK Legacy Bundles](https://console.cloud.google.com/storage/browser/gatk-legacy-bundles/b37/scattered_wgs_intervals/scatter-80) and set `interval_folder` in your config YAML to its directory path.
+2. **Custom WGS BED file:** Set `wgs_interval_bed` in your config to a BED file covering the whole genome. The pipeline will use GATK `SplitIntervals` to scatter it.
+
+For **WES/Panel data**, simply provide the `target_file` (baits BED) in the config — the pipeline handles interval splitting automatically.
 
 ---
 
@@ -177,6 +204,26 @@ Otherwise, prepare a TSV (Tab-Separated Values) file with the following columns:
 | `INSERT_SIZE` | **(Optional)** Absolute path to the output of GATK `CollectInsertSizeMetrics` (e.g., `..._insert_size_metrics.txt`). If omitted, the pipeline will compute this automatically, but providing it will save compute time. |
 
 > **Safety Check:** The helper notebook enforces strict uniqueness on the `SAMPLE_NAME` column to prevent job collisions and accidental data overwriting. If any underscores (`_`) are found in `SAMPLE_TYPE` or `PATIENT_ID`, the notebook will automatically convert them to hyphens (`-`) to ensure downstream compatibility.
+
+---
+
+## Pipeline Outputs
+
+After a successful run, the following files are generated per sample in the working directory:
+
+| Output File | Description |
+| :--- | :--- |
+| `<prefix>_filtered.vcf` | Filtered somatic VCF (PASS + soft-filtered variants). |
+| `<prefix>_filtered.vcf.filteringStats.tsv` | FilterMutectCalls statistics summary. |
+| `<prefix>_filtered.rescue.vcf` | VCF with deTiN-rescued somatic mutations (tumor-normal only). |
+| `detin/` | deTiN contamination estimation results (SSNVs and indels). |
+| `<prefix>_*.avinput.hg19_multianno.txt` | ANNOVAR-annotated variant table. |
+| `<prefix>_*.avinput.hg19_multianno.maf` | MAF format with annotations and VAF/count fields. |
+| `blat/<prefix>_passed.maf` | BLAT-filter passed mutations (if `stepper` is set). |
+| `blat/<prefix>_rejected.maf` | BLAT-filter rejected mutations. |
+| `contamination.table` | Cross-sample contamination estimate. |
+| `<prefix>.crosscheck_metrics` | Fingerprint cross-check results (tumor-normal only). |
+
 ---
 
 ## Special Notes

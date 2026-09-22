@@ -13,11 +13,11 @@ include: "rules/blatFilter.smk"
 
 expander = ["_filtered"]
 
-if normal:
-    expander += ["_filtered.rescue"]
+# if normal:
+#     expander += ["_filtered.rescue"]
 
-if stepper:
-    expander += [i + ".blat" for i in expander]
+# if stepper:
+#     expander += [i + ".blat" for i in expander]
 
 
 rule all:
@@ -25,29 +25,29 @@ rule all:
         expand(wrkdir / str(output_prefix + "{ifrescue}.vcf"), ifrescue=expander),
         wrkdir / str(output_prefix + "_filtered.vcf.idx"),
         wrkdir / str(output_prefix + "_filtered.vcf.filteringStats.tsv"),
-        # wrkdir / str(output_prefix + ".crosscheck_metrics") if normal else [],
-        expand(
-            wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.txt"),
-            ifrescue=expander,
-        )
-        if run_annovar
-        else [],
-        expand(
-            wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.maf"),
-            ifrescue=expander,
-        )
-        if run_annovar
-        else [
-            expand(
-                wrkdir / str(output_prefix + "{ifrescue}.maf"),
-            )
-        ],
-        expand(
-            wrkdir / "blat" / str(output_prefix + "_{group}.maf"),
-            group=["passed", "rejected", "all"],
-        )
-        if stepper
-        else [],
-        wrkdir / "alignments" / (tumour + "_insert-size.txt")
-        if "insertSize" not in config
-        else [],
+        # # wrkdir / str(output_prefix + ".crosscheck_metrics") if normal else [],
+        # expand(
+        #     wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.txt"),
+        #     ifrescue=expander,
+        # )
+        # if run_annovar
+        # else [],
+        # expand(
+        #     wrkdir / str(output_prefix + "{ifrescue}.avinput.hg19_multianno.maf"),
+        #     ifrescue=expander,
+        # )
+        # if run_annovar
+        # else [
+        #     expand(
+        #         wrkdir / str(output_prefix + "{ifrescue}.maf"),
+        #     )
+        # ],
+        # expand(
+        #     wrkdir / "blat" / str(output_prefix + "_{group}.maf"),
+        #     group=["passed", "rejected", "all"],
+        # )
+        # if stepper
+        # else [],
+        # wrkdir / "alignments" / (tumour + "_insert-size.txt")
+        # if "insertSize" not in config
+        # else [],

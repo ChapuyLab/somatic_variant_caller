@@ -6,7 +6,7 @@ rule SplitIntervals:
         target_file=(
             "-L " + target_file
             if target_file
-            else "-L /dh-projects/ag-ishaque/analysis/sahays/pipelines/mutect2_pipeline/reference/wgs_interval_file.bed"
+            else "-L " + wgs_interval_bed if wgs_interval_bed else ""
         ),
         scatter_count=scatter_count,
         subdivision_mode=(
@@ -18,10 +18,7 @@ rule SplitIntervals:
         interval_files=temp(
             expand(
                 wrkdir / "intervals" / "{scatter}-scattered.interval_list",
-                scatter=[
-                    "00" + str(i) if i > 9 else "000" + str(i)
-                    for i in range(scatter_count)
-                ],
+                scatter=scatter_ids,
             )
         ),
         intervals=directory(wrkdir / "intervals"),
@@ -127,17 +124,11 @@ rule GatherVCFFiles:
     input:
         idx=expand(
             wrkdir / "tmp" / "unfiltered_{scatter}.vcf.idx",
-            scatter=[
-                "00" + str(i) if i > 9 else "000" + str(i)
-                for i in range(scatter_count)
-            ],
+            scatter=scatter_ids,
         ),
         vcf=expand(
             wrkdir / "tmp" / "unfiltered_{scatter}.vcf",
-            scatter=[
-                "00" + str(i) if i > 9 else "000" + str(i)
-                for i in range(scatter_count)
-            ],
+            scatter=scatter_ids,
         ),
     output:
         vcf=wrkdir / "unfiltered.vcf",
@@ -150,10 +141,7 @@ rule GatherVCFFiles:
                 "-I " + i
                 for i in expand(
                     wrkdir / "tmp" / "unfiltered_{scatter}.vcf",
-                    scatter=[
-                        "00" + str(i) if i > 9 else "000" + str(i)
-                        for i in range(scatter_count)
-                    ],
+                    scatter=scatter_ids,
                 )
             ]
         ),
@@ -172,17 +160,11 @@ rule MergeMutectStats:
     input:
         idx=expand(
             wrkdir / "tmp" / "unfiltered_{scatter}.vcf.idx",
-            scatter=[
-                "00" + str(i) if i > 9 else "000" + str(i)
-                for i in range(scatter_count)
-            ],
+            scatter=scatter_ids,
         ),
         stats=expand(
             wrkdir / "tmp" / "unfiltered_{scatter}.vcf.stats",
-            scatter=[
-                "00" + str(i) if i > 9 else "000" + str(i)
-                for i in range(scatter_count)
-            ],
+            scatter=scatter_ids,
         ),
     output:
         stats=wrkdir / "unfiltered.vcf.stats",
@@ -194,10 +176,7 @@ rule MergeMutectStats:
                 "-stats " + i
                 for i in expand(
                     wrkdir / "tmp" / "unfiltered_{scatter}.vcf.stats",
-                    scatter=[
-                        "00" + str(i) if i > 9 else "000" + str(i)
-                        for i in range(scatter_count)
-                    ],
+                    scatter=scatter_ids,
                 )
             ]
         ),

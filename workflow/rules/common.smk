@@ -196,3 +196,15 @@ if "fake_normal" in config and config["fake_normal"]:
     fake_normal = config["fake_normal"]
 else:
     fake_normal = False
+
+if "max_mut" in config and config["max_mut"]:
+    print(f"Setting Max Mutation per blatFilter run to {config['max_mut']}")
+    max_mut = int(config["max_mut"])
+else:
+    max_mut = 10000
+
+# Centralized scatter interval IDs — used across mutation_calling and post_processing rules
+scatter_ids = [str(i).zfill(4) for i in range(scatter_count)]
+
+# WGS fallback interval file (only used when no target_file is provided)
+wgs_interval_bed = config["wgs_interval_bed"] if "wgs_interval_bed" in config else ""
